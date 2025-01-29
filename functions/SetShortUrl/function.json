@@ -1,0 +1,28 @@
+{
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "Request",
+      "methods": [
+        "post"
+      ],
+      "route": "{ShortUrlId}"
+    },
+    {
+      "name": "ShortUrlRecord",
+      "type": "table",
+      "tableName": "Urls",
+      "partitionKey": "default",
+      "filter": "RowKey eq '{ShortUrlId}'",
+      "connection": "AzureWebJobsStorage",
+      "direction": "in"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "Response"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+# Azure Functions artifacts
+bin
+obj
+appsettings.json
+local.settings.json
+
+# Azurite artifacts
+__blobstorage__
+__queuestorage__
+__azurite_db*__.json
+
+# MacOS artifacts
+.DS_Store
+
+# local params file
+main.bicepparam

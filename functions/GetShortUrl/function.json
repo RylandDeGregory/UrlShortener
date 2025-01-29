@@ -1,0 +1,28 @@
+{
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "Request",
+      "methods": [
+        "get"
+      ],
+      "route": "{ShortUrlId}"
+    },
+    {
+      "name": "ShortUrlRecord",
+      "type": "table",
+      "tableName": "Urls",
+      "partitionKey": "default",
+      "filter": "RowKey eq '{ShortUrlId}'",
+      "connection": "AzureWebJobsStorage",
+      "direction": "in"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "Response"
+    }
+  ]
+}
