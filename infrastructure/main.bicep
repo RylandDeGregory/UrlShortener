@@ -48,7 +48,7 @@ resource storageBlobOwnerRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
 @sys.description('Built-in Storage Table Data Contributor role. See https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/storage#storage-table-data-contributor')
 resource storageTableContributorRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
-  name: 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+  name: '19e7f393-937e-4f77-808e-94535e297925'
 }
 
 // RBAC Role assignments
@@ -68,7 +68,7 @@ resource funcMITableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   name: guid(functionApp.id, storageAccount.id, storageTableContributorRole.id)
   scope: storageAccount
   properties: {
-    roleDefinitionId: storageBlobOwnerRole.id
+    roleDefinitionId: storageTableContributorRole.id
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
@@ -92,7 +92,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource appServicePlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: appServicePlanName
   location: location
-  kind: 'linux'
+  kind: 'functionapp'
   properties: {
     reserved: true
   }
@@ -141,15 +141,12 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       }
       scaleAndConcurrency: {
         instanceMemoryMB: 2048
-        maximumInstanceCount: 10
+        maximumInstanceCount: 100
       }
     }
     httpsOnly: true
-    keyVaultReferenceIdentity: 'SystemAssigned'
-    reserved: true
     serverFarmId: appServicePlan.id
     siteConfig: {
-      alwaysOn: false
       appSettings: [
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -231,26 +228,30 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
   location: location
   kind: 'StorageV2'
-  sku: {
-    name: 'Standard_LRS'
-  }
   properties: {
-    publicNetworkAccess: 'Enabled'
     allowBlobPublicAccess: false
     allowCrossTenantReplication: false
-    allowedCopyScope: 'AAD'
     allowSharedKeyAccess: false
+    allowedCopyScope: 'AAD'
     defaultToOAuthAuthentication: true
+    minimumTlsVersion: 'TLS1_2'
     networkAcls: {
       defaultAction: 'Deny'
+      bypass: 'None'
       virtualNetworkRules: [
         {
-          id: virtualNetwork.properties.subnets[0].id
+          id: virtualNetwork::funcSubnet.id
+          action: 'Allow'
         }
       ]
     }
+    publicNetworkAccess: 'Enabled'
+  }
+  sku: {
+    name: 'Standard_LRS'
   }
 
+  // Child resources
   resource blobService 'blobServices' existing = {
     name: 'default'
 
@@ -318,29 +319,28 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
         virtualNetworkAddressPrefix
       ]
     }
-    subnets: [
-      {
-        name: 'snet-functionAppVirtualNetworkIntegration'
-        properties: {
-          addressPrefix: virtualNetworkSubnetAddressPrefix
-          delegations: [
-            {
-              name: 'functionAppDelegation'
-              properties: {
-                serviceName: 'Microsoft.Web/serverFarms'
-              }
-            }
-          ]
-          serviceEndpoints: [
-            {
-              service: 'Microsoft.Storage'
-              locations: [
-                location
-              ]
-            }
+  }
+
+  resource funcSubnet 'subnets' = {
+    name: 'snet-functionAppVirtualNetworkIntegration'
+    properties: {
+      addressPrefix: virtualNetworkSubnetAddressPrefix
+      delegations: [
+        {
+          name: 'functionAppDelegation'
+          properties: {
+            serviceName: 'Microsoft.App/environments'
+          }
+        }
+      ]
+      serviceEndpoints: [
+        {
+          service: 'Microsoft.Storage'
+          locations: [
+            location
           ]
         }
-      }
-    ]
+      ]
+    }
   }
 }
