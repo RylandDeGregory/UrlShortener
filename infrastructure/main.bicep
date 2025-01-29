@@ -74,47 +74,6 @@ resource funcMITableRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   }
 }
 
-// Resource Group Lock
-resource rgLock 'Microsoft.Authorization/locks@2020-05-01' = {
-  scope: resourceGroup()
-  name: 'DoNotDelete'
-  properties: {
-    level: 'CanNotDelete'
-    notes: 'This lock prevents the accidental deletion of resources'
-  }
-}
-
-// Log Analytics Workspace
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: logAnalyticsWorkspaceName
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-}
-
-resource logAnalyticsWorkspaceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logsEnabled) {
-  name: 'All Logs and Metrics'
-  scope: logAnalyticsWorkspace
-  properties: {
-    logs: [
-      {
-        categoryGroup: 'allLogs'
-        enabled: true
-      }
-    ]
-    metrics: [
-      {
-        category: 'allMetrics'
-        enabled: true
-      }
-    ]
-    workspaceId: logAnalyticsWorkspace.id
-  }
-}
-
 // Application Insights
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
@@ -126,88 +85,6 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   // Link Application Insights instance to Function App
   tags: {
     'hidden-link:${resourceId('Microsoft.Web/sites', functionAppName)}': 'Resource'
-  }
-}
-
-// Storage Account
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
-  name: storageAccountName
-  location: location
-  kind: 'StorageV2'
-  sku: {
-    name: 'Standard_LRS'
-  }
-  properties: {
-    publicNetworkAccess: 'Enabled'
-    allowBlobPublicAccess: false
-    allowCrossTenantReplication: false
-    allowedCopyScope: 'AAD'
-    allowSharedKeyAccess: false
-    defaultToOAuthAuthentication: true
-    networkAcls: {
-      defaultAction: 'Deny'
-      virtualNetworkRules: [
-        {
-          id: virtualNetwork.properties.subnets[0].id
-        }
-      ]
-    }
-  }
-
-  resource blobService 'blobServices' existing = {
-    name: 'default'
-
-    resource container 'containers' = {
-      name: storageAccountBlobContainerName
-    }
-  }
-
-  resource tableService 'tableServices' existing = {
-    name: 'default'
-
-    resource table 'tables' = {
-      name: storageAccountTableName
-    }
-  }
-}
-
-resource blobServiceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logsEnabled) {
-  name: 'All Logs and Metrics'
-  scope: storageAccount::blobService
-  properties: {
-    logs: [
-      {
-        categoryGroup: 'allLogs'
-        enabled: true
-      }
-    ]
-    metrics: [
-      {
-        category: 'Transaction'
-        enabled: true
-      }
-    ]
-    workspaceId: logAnalyticsWorkspace.id
-  }
-}
-
-resource tableServiceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logsEnabled) {
-  name: 'All Logs and Metrics'
-  scope: storageAccount::tableService
-  properties: {
-    logs: [
-      {
-        categoryGroup: 'allLogs'
-        enabled: true
-      }
-    ]
-    metrics: [
-      {
-        category: 'Transaction'
-        enabled: true
-      }
-    ]
-    workspaceId: logAnalyticsWorkspace.id
   }
 }
 
@@ -308,6 +185,130 @@ resource funcDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-0
   }
 }
 
+// Resource Group Lock
+resource rgLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  scope: resourceGroup()
+  name: 'DoNotDelete'
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'This lock prevents the accidental deletion of resources'
+  }
+}
+
+// Log Analytics Workspace
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+}
+
+resource logAnalyticsWorkspaceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logsEnabled) {
+  name: 'All Logs and Metrics'
+  scope: logAnalyticsWorkspace
+  properties: {
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'allMetrics'
+        enabled: true
+      }
+    ]
+    workspaceId: logAnalyticsWorkspace.id
+  }
+}
+
+// Storage Account
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    publicNetworkAccess: 'Enabled'
+    allowBlobPublicAccess: false
+    allowCrossTenantReplication: false
+    allowedCopyScope: 'AAD'
+    allowSharedKeyAccess: false
+    defaultToOAuthAuthentication: true
+    networkAcls: {
+      defaultAction: 'Deny'
+      virtualNetworkRules: [
+        {
+          id: virtualNetwork.properties.subnets[0].id
+        }
+      ]
+    }
+  }
+
+  resource blobService 'blobServices' existing = {
+    name: 'default'
+
+    resource container 'containers' = {
+      name: storageAccountBlobContainerName
+    }
+  }
+
+  resource tableService 'tableServices' existing = {
+    name: 'default'
+
+    resource table 'tables' = {
+      name: storageAccountTableName
+    }
+  }
+}
+
+resource blobServiceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logsEnabled) {
+  name: 'All Logs and Metrics'
+  scope: storageAccount::blobService
+  properties: {
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'Transaction'
+        enabled: true
+      }
+    ]
+    workspaceId: logAnalyticsWorkspace.id
+  }
+}
+
+resource tableServiceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (logsEnabled) {
+  name: 'All Logs and Metrics'
+  scope: storageAccount::tableService
+  properties: {
+    logs: [
+      {
+        categoryGroup: 'allLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'Transaction'
+        enabled: true
+      }
+    ]
+    workspaceId: logAnalyticsWorkspace.id
+  }
+}
+
+// Virtual Network
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   name: virtualNetworkName
   location: location
