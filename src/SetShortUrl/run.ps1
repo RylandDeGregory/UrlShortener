@@ -9,14 +9,14 @@ $ShortUrlId = $Request.Params.ShortUrlId
 # Extract original url from body or query parameter
 $OriginalUrl = if ($Request.Body.url) { $Request.Body.url } else { $Request.Query.url }
 
-if ([string]::IsNullOrWhiteSpace($ShortUrlId) -or [string]::IsNullOrWhiteSpace($OriginalUrl)) {
+if ([String]::IsNullOrWhiteSpace($ShortUrlId) -or [String]::IsNullOrWhiteSpace($OriginalUrl)) {
     # Return 400 if a short url id or original url is not provided
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
         Body       = 'ShortUrlId is required'
     })
     exit
-} elseif ([string]::IsNullOrWhiteSpace($OriginalUrl)) {
+} elseif ([String]::IsNullOrWhiteSpace($OriginalUrl)) {
     # Return 400 if the original url is not provided
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
@@ -48,9 +48,9 @@ try {
     exit
 }
 
-# Create the record to be inserted into the Table
-$DateTime = [DateTime]::UtcNow.ToString('o')
-$NewRecord = [pscustomobject]@{
+# Define the record to be inserted into the Table
+$DateTime = Get-Date -AsUTC -Format 'o'
+$NewRecord = [PSCustomObject]@{
     CreatedAt    = $DateTime
     OriginalUrl  = $OriginalUrl
     PartitionKey = 'default'
@@ -72,7 +72,7 @@ try {
     exit
 }
 
-# Return 200 OK if the record was created successfully
+# Return 200 OK if the record was inserted successfully
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
     StatusCode = [HttpStatusCode]::OK
 })

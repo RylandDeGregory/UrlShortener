@@ -7,7 +7,7 @@ param($Request, $ShortUrlRecord, $TriggerMetadata)
 $ShortUrlId = $Request.Params.ShortUrlId
 
 # Return response based on request parameters
-if ([string]::IsNullOrWhiteSpace($ShortUrlId)) {
+if ([String]::IsNullOrWhiteSpace($ShortUrlId)) {
     # Return 404 if a short url id is not provided
     Write-Warning 'ShortUrlId was not provided'
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
