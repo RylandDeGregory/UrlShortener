@@ -1,3 +1,5 @@
+targetScope = 'resourceGroup'
+
 @sys.minLength(1)
 @sys.maxLength(260)
 @sys.description('Application Insights name. Default: appi-urlshort-$<uniqueSuffix>')
@@ -52,8 +54,8 @@ param storageAccountTableName string = 'RegisteredUrls'
 
 @sys.minLength(1)
 @sys.maxLength(13)
-@sys.description('A unique string to add as a suffix to all resources. Default: toLower(uniqueString(resourceGroup().id, location, environmentName))')
-param uniqueSuffix string = toLower(uniqueString(resourceGroup().id, location, environmentName))
+@sys.description('A unique string to add as a suffix to all resources. Default: toLower(uniqueString(resourceGroup().id, environmentName, location))')
+param uniqueSuffix string = toLower(uniqueString(resourceGroup().id, environmentName, location))
 
 @sys.minLength(9)
 @sys.maxLength(18)
