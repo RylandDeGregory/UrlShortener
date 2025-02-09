@@ -161,12 +161,3 @@ module virtualNetwork 'modules/networking.bicep' = {
 output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output FUNCTION_APP_NAME string = functionApp.outputs.name
-
-// $Params = @{
-//     Location          = 'eastus2'
-//     Name              = 'UrlShortener-main'
-//     ResourceGroupName = 'UrlShort'
-//     TemplateFile      = './infrastructure/main.bicep'
-//     Verbose           = $true
-// }
-// New-AzResourceGroupDeployment @Params

@@ -37,7 +37,6 @@ param virtualNetworkName string
 @sys.description('Function App Virtual Network Integration Subnet name.')
 param virtualNetworkSubnetName string
 
-
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
   name: logAnalyticsWorkspaceName
 }
@@ -135,7 +134,6 @@ resource tableServiceDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2
     workspaceId: logAnalyticsWorkspace.id
   }
 }
-
 
 output containerName string = storageAccount::blobService::container.name
 output name string = storageAccount.name

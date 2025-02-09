@@ -17,7 +17,6 @@ param logsEnabled bool
 @sys.description('The Azure Tags to apply to the resources.')
 param tags object
 
-
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
@@ -60,7 +59,6 @@ resource logAnalyticsWorkspaceDiagnosticSettings 'Microsoft.Insights/diagnosticS
     workspaceId: logAnalyticsWorkspace.id
   }
 }
-
 
 output appInsightsName string = appInsights.name
 output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
