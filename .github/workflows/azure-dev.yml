@@ -1,7 +1,7 @@
 # This workflow will deploy a PowerShell project to an Azure Functions App when a commit is pushed to main.
 # The workflow can also be manually triggered using the "Run Workflow" button in the GitHub Actions UI.
 
-name: Function App Continuous Deployment
+name: AZD Continuous Deployment
 
 on:
   workflow_dispatch:
@@ -16,8 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # azd build-in variables.
-    # This variables are always set by `azd pipeline config`
+    # These variables are always set by `azd pipeline config`
     env:
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
@@ -32,7 +31,7 @@ jobs:
       - name: Install azd
         uses: Azure/setup-azd@v1.0.0
 
-      - name: Log in with Azure (Federated Credentials)
+      - name: Login with Azure Dev CLI
         run: |
           azd auth login `
             --client-id "$Env:AZURE_CLIENT_ID" `
