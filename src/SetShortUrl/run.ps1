@@ -1,7 +1,7 @@
 using namespace System.Net
 
 # Input bindings are passed in via param block.
-param($Request, $ShortUrlRecord, $TriggerMetadata)
+param($Request, $TriggerMetadata)
 
 # Parse short url id from the request route
 $ShortUrlId = $Request.Params.ShortUrlId
@@ -25,15 +25,6 @@ if ([String]::IsNullOrWhiteSpace($ShortUrlId) -or [String]::IsNullOrWhiteSpace($
     exit
 }
 
-if ($ShortUrlRecord) {
-    # Return 409 if the short url id already exists
-    Write-Warning "ShortUrlId [$ShortUrlId] is already registered."
-    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-        StatusCode = [HttpStatusCode]::Conflict
-    })
-    exit
-}
-
 # Get Azure Table Storage request headers
 try {
     Write-Verbose 'Get Azure Table Storage request headers'
@@ -44,6 +35,28 @@ try {
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError
         Body      = $ErrorMessage
+    })
+    exit
+}
+
+# Get the record from the Azure Table
+try {
+    $ShortUrlRecord = Get-AzTableRecord -RowKey $ShortUrlId -Headers $Headers
+} catch {
+    $ErrorMessage = "Error getting record [$ShortUrlId] from Azure Table Storage: $_"
+    Write-Error $ErrorMessage
+    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+        StatusCode = [HttpStatusCode]::InternalServerError
+        Body      = $ErrorMessage
+    })
+    exit
+}
+
+if ($ShortUrlRecord) {
+    # Return 409 if the short url id already exists
+    Write-Warning "ShortUrlId [$ShortUrlId] is already registered."
+    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+        StatusCode = [HttpStatusCode]::Conflict
     })
     exit
 }
