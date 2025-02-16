@@ -83,6 +83,7 @@ var tags = { 'azd-env-name': environmentName }
 module functionApp 'modules/functionApp.bicep' = {
   name: 'FunctionApp'
   params: {
+    appInsightsName: monitoring.outputs.appInsightsName
     appServicePlanName: appServicePlanName
     functionAppName: functionAppName
     location: location

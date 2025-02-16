@@ -2,6 +2,11 @@
 param location string
 
 @sys.minLength(1)
+@sys.maxLength(260)
+@sys.description('Application Insights name.')
+param appInsightsName string
+
+@sys.minLength(1)
 @sys.maxLength(60)
 @sys.description('App Service Plan name.')
 param appServicePlanName string
@@ -46,6 +51,10 @@ param virtualNetworkName string
 @sys.maxLength(80)
 @sys.description('Function App Virtual Network Integration Subnet name.')
 param virtualNetworkSubnetName string
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: appInsightsName
+}
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
   name: logAnalyticsWorkspaceName
@@ -127,6 +136,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'APPLICATIONINSIGHTS_AUTHENTICATION_STRING'
           value: 'Authorization=AAD'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
         }
         {
           name: 'AzureWebJobsStorage__accountName'
