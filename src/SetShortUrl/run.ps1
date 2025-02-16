@@ -9,19 +9,20 @@ $ShortUrlId = $Request.Params.ShortUrlId
 # Extract original url from body or query parameter
 $OriginalUrl = if ($Request.Body.url) { $Request.Body.url } else { $Request.Query.url }
 $ForceUpdate = if ($Request.Body.force) { $Request.Body.force } else { $Request.Query.force }
+$TrackClicks = if ($Request.Body.trackClicks) { $Request.Body.trackClicks } else { $Request.Query.trackClicks }
 
-if ([String]::IsNullOrWhiteSpace($ShortUrlId) -or [String]::IsNullOrWhiteSpace($OriginalUrl)) {
-    # Return 400 if a short url id or original url is not provided
+if ([String]::IsNullOrWhiteSpace($ShortUrlId)) {
+    # Return 400 if a short url id is not provided
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
         Body       = 'ShortUrlId is required'
     })
     exit
-} elseif ([String]::IsNullOrWhiteSpace($OriginalUrl)) {
+} elseif ([String]::IsNullOrWhiteSpace($OriginalUrl) -and [String]::IsNullOrWhiteSpace($TrackClicks)) {
     # Return 400 if the original url is not provided
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
-        Body       = 'OriginalUrl is required'
+        Body       = 'Url is required'
     })
     exit
 } elseif (-not [String]::IsNullOrWhiteSpace($ForceUpdate) -and $ForceUpdate -ne 'true') {
@@ -29,6 +30,13 @@ if ([String]::IsNullOrWhiteSpace($ShortUrlId) -or [String]::IsNullOrWhiteSpace($
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
         Body       = 'Force must be "true" if set'
+    })
+    exit
+} elseif (-not [String]::IsNullOrWhiteSpace($TrackClicks) -and $TrackClicks -notin 'true', 'false') {
+    # Return 400 if the trackClicks is set to an invalid value
+    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+        StatusCode = [HttpStatusCode]::BadRequest
+        Body       = 'TrackClicks must be "true" or "false" if set'
     })
     exit
 }
@@ -61,17 +69,41 @@ try {
 }
 
 if ($ShortUrlRecord) {
+    # Update the existing record if the force parameter is set
     if ($ForceUpdate -eq 'true') {
-        # Update the existing record if the force parameter is set
-        Write-Information "OriginalUrl changed from [$($ShortUrlRecord.OriginalUrl)] to [$OriginalUrl]"
-
-        # Define the updated record to be inserted into the Table
-        $TableRecord = [PSCustomObject]@{
-            OriginalUrl  = $OriginalUrl
-            PartitionKey = 'default'
-            RowKey       = $ShortUrlId
-            UpdatedAt    = Get-Date -AsUTC -Format 'o'
+        if ($ShortUrlRecord.Url -eq $OriginalUrl -and [string]$ShortUrlRecord.TrackClicks -eq $TrackClicks) {
+            # Return 200 if the new url is the same as the existing url
+            Write-Information "Url [$OriginalUrl] is the existing value for [$ShortUrlId]"
+            Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+                StatusCode = [HttpStatusCode]::OK
+            })
+            exit
         }
+        if (-not [String]::IsNullOrWhiteSpace($OriginalUrl) -and $ShortUrlRecord.Url -ne $OriginalUrl) {
+            Write-Information "Url changed from [$($ShortUrlRecord.Url)] to [$OriginalUrl]"
+            $ShortUrlRecord.Url = $OriginalUrl
+        }
+
+        if ([string]$ShortUrlRecord.TrackClicks -ne $TrackClicks) {
+            Write-Information "TrackClicks changed from [$($ShortUrlRecord.TrackClicks)] to [$TrackClicks]"
+            if ($TrackClicks -eq 'true') {
+                if (-not $ShortUrlRecord.Clicks) {
+                    Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'Clicks' -Value 0
+                }
+                if (-not $ShortUrlRecord.TrackClicks) {
+                    Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'TrackClicks' -Value $true
+                } else {
+                    $ShortUrlRecord.TrackClicks = $true
+                }
+                Write-Information "Enabled click tracking for [$ShortUrlId]"
+            } else {
+                $ShortUrlRecord.TrackClicks = $false
+                Write-Information "Disabled click tracking for [$ShortUrlId]"
+            }
+        }
+
+        $TableRecord = $ShortUrlRecord
+        $TableRecord.UpdatedAt = Get-Date -AsUTC -Format 'o'
         Write-Information "Update record with ID [$ShortUrlId] in Azure Table Storage"
     } else {
         # Return 409 if the short url id already exists
@@ -86,10 +118,15 @@ if ($ShortUrlRecord) {
     $DateTime = Get-Date -AsUTC -Format 'o'
     $TableRecord = [PSCustomObject]@{
         CreatedAt    = $DateTime
-        OriginalUrl  = $OriginalUrl
+        Url          = $OriginalUrl
         PartitionKey = 'default'
         RowKey       = $ShortUrlId
         UpdatedAt    = $DateTime
+    }
+    if ($TrackClicks -eq 'true') {
+        Add-Member -InputObject $TableRecord -MemberType NoteProperty -Name 'Clicks' -Value 0
+        Add-Member -InputObject $TableRecord -MemberType NoteProperty -Name 'TrackClicks' -Value $true
+        Write-Information "Enabled click tracking for [$ShortUrlId]"
     }
     Write-Information "Insert record with ID [$ShortUrlId] into Azure Table Storage"
 }
@@ -98,7 +135,7 @@ if ($ShortUrlRecord) {
 try {
     Set-AzTableRecord -Record $TableRecord -Headers $Headers | Out-Null
 } catch {
-    $ErrorMessage = "Error inserting record into Azure Table Storage: $_"
+    $ErrorMessage = "Error setting record into Azure Table Storage: $_"
     Write-Error $ErrorMessage
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError

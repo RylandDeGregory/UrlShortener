@@ -59,9 +59,14 @@ if (-not $ShortUrlRecord) {
     exit
 } else {
     # Redirect to the original URL
-    Write-Information "Redirecting to [$($ShortUrlRecord.OriginalUrl)]"
+    Write-Information "Redirecting to [$($ShortUrlRecord.Url)]"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::Redirect
-        Headers = @{ Location = $ShortUrlRecord.OriginalUrl }
+        Headers = @{ Location = $ShortUrlRecord.Url }
     })
+    if ([string]$ShortUrlRecord.TrackClicks -eq 'true') {
+        # Increment the click count if tracking is enabled
+        $ShortUrlRecord.Clicks = $ShortUrlRecord.Clicks + 1
+        Set-AzTableRecord -Record $ShortUrlRecord -Headers $Headers | Out-Null
+    }
 }
