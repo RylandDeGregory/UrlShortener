@@ -22,6 +22,7 @@ param functionAppName string = 'func-urlshort-${uniqueSuffix}'
 
 @sys.minLength(1)
 @sys.description('The Azure Region to deploy the resources into.')
+@allowed(['australiaeast', 'eastasia', 'eastus', 'eastus2', 'northeurope', 'southcentralus', 'southeastasia', 'swedencentral', 'uksouth', 'westus2',])
 @metadata({
   azd: {
     type: 'location'
