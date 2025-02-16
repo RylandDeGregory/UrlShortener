@@ -11,6 +11,7 @@ $OriginalUrl = if ($Request.Body.url) { $Request.Body.url } else { $Request.Quer
 $ForceUpdate = if ($Request.Body.force) { $Request.Body.force } else { $Request.Query.force }
 $TrackClicks = if ($Request.Body.trackClicks) { $Request.Body.trackClicks } else { $Request.Query.trackClicks }
 
+#region ValidateRequest
 if ([String]::IsNullOrWhiteSpace($ShortUrlId)) {
     # Return 400 if a short url id is not provided
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
@@ -41,6 +42,37 @@ if ([String]::IsNullOrWhiteSpace($ShortUrlId)) {
     exit
 }
 
+# Validate the short URL ID
+if (-not ($ShortUrlId -match '^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$') -or $ShortUrlId.Length -gt 50) {
+    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+        StatusCode = [HttpStatusCode]::BadRequest
+        Body       = 'ShortUrlId must contain only alphanumeric characters and hyphens, cannot start or end with a hyphen, and cannot exceed 50 characters.'
+    })
+    exit
+}
+
+# Validate the input URL
+if (-not [String]::IsNullOrWhiteSpace($OriginalUrl)) {
+    try {
+        $uri = [System.Uri]::new($OriginalUrl)
+        if (-not ($uri.Scheme -eq 'http' -or $uri.Scheme -eq 'https')) {
+            Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+                StatusCode = [HttpStatusCode]::BadRequest
+                Body       = 'URL must use HTTP or HTTPS scheme'
+            })
+            exit
+        }
+    } catch {
+        Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+            StatusCode = [HttpStatusCode]::BadRequest
+            Body       = 'Url must be a valid URI'
+        })
+        exit
+    }
+}
+#endregion ValidateRequest
+
+#region GetRecord
 # Get Azure Table Storage request headers
 try {
     Write-Verbose 'Get Azure Table Storage request headers'
@@ -50,7 +82,7 @@ try {
     Write-Error $ErrorMessage
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError
-        Body      = $ErrorMessage
+        Body       = $ErrorMessage
     })
     exit
 }
@@ -63,11 +95,13 @@ try {
     Write-Error $ErrorMessage
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError
-        Body      = $ErrorMessage
+        Body       = $ErrorMessage
     })
     exit
 }
+#endregion GetRecord
 
+#region SetRecord
 if ($ShortUrlRecord) {
     # Update the existing record if the force parameter is set
     if ($ForceUpdate -eq 'true') {
@@ -86,20 +120,20 @@ if ($ShortUrlRecord) {
 
         if ([string]$ShortUrlRecord.TrackClicks -ne $TrackClicks) {
             Write-Information "TrackClicks changed from [$($ShortUrlRecord.TrackClicks)] to [$TrackClicks]"
-            if ($TrackClicks -eq 'true') {
-                if (-not $ShortUrlRecord.Clicks) {
-                    Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'Clicks' -Value 0
-                }
-                if (-not $ShortUrlRecord.TrackClicks) {
-                    Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'TrackClicks' -Value $true
-                } else {
-                    $ShortUrlRecord.TrackClicks = $true
-                }
-                Write-Information "Enabled click tracking for [$ShortUrlId]"
+
+            # Ensure TrackClicks property exists
+            if (-not (Get-Member -InputObject $ShortUrlRecord -Name 'TrackClicks')) {
+                Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'TrackClicks' -Value ($TrackClicks -eq 'true')
             } else {
-                $ShortUrlRecord.TrackClicks = $false
-                Write-Information "Disabled click tracking for [$ShortUrlId]"
+                $ShortUrlRecord.TrackClicks = ($TrackClicks -eq 'true')
             }
+
+            # Handle Clicks property
+            if ($TrackClicks -eq 'true' -and -not (Get-Member -InputObject $ShortUrlRecord -Name 'Clicks')) {
+                Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'Clicks' -Value 0
+            }
+
+            Write-Information "$(if ($TrackClicks -eq 'true') {'Enabled'} else {'Disabled'}) click tracking for [$ShortUrlId]"
         }
 
         $TableRecord = $ShortUrlRecord
@@ -139,10 +173,11 @@ try {
     Write-Error $ErrorMessage
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError
-        Body      = $ErrorMessage
+        Body       = $ErrorMessage
     })
     exit
 }
+#endregion SetRecord
 
 # Return 200 OK if the record was inserted successfully
 Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{

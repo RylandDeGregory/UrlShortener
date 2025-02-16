@@ -172,6 +172,53 @@ function Get-AzTableRecord {
     return $AzTableRecord
 }
 
+function Remove-AzTableRecord {
+    <#
+        .SYNOPSIS
+            Delete Azure Table Storage record.
+        .EXAMPLE
+            Remove-AzTableRecord -RowKey 'myrowkey' -Headers $(Get-AzTableHeaders)
+    #>
+    [OutputType([PSCustomObject])]
+    [CmdletBinding()]
+    param (
+        # Storage Account containing the Table
+        [Parameter()]
+        [ValidateLength(3, 24)]
+        [string] $StorageAccount = $env:STORAGE_ACCOUNT_NAME,
+
+        # Azure Table name
+        [Parameter()]
+        [ValidateLength(3, 63)]
+        [string] $TableName = $env:STORAGE_TABLE_NAME,
+
+        # Partition Key
+        [Parameter()]
+        [string] $PartitionKey = 'default',
+
+        # Row Key
+        [Parameter(Mandatory)]
+        [string] $RowKey,
+
+        # Headers for the request
+        [Parameter(Mandatory)]
+        [hashtable] $Headers
+    )
+
+    # Get Azure Table Storage request properties
+    $AzTableUri = "https://$StorageAccount.table.core.windows.net/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
+
+    # Get the record from the Azure Table
+    Write-Verbose "Get Azure Table record [$AzTableUri]"
+    try {
+        $AzTableRecord = Invoke-RestMethod -Method Delete -Uri $AzTableUri -Headers $Headers
+    } catch {
+        Write-Error "Error removing Azure Table record: $_"
+    }
+
+    return $AzTableRecord
+}
+
 function Set-AzTableRecord {
     <#
         .SYNOPSIS
