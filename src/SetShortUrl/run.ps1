@@ -28,7 +28,7 @@ if ([String]::IsNullOrWhiteSpace($ShortUrlId) -or [String]::IsNullOrWhiteSpace($
 # Get Azure Table Storage request headers
 try {
     Write-Verbose 'Get Azure Table Storage request headers'
-    $Headers = Get-AzTableHeaders -RowKey $ShortUrlId
+    $Headers = Get-AzTableHeaders -RowKey $ShortUrlId -Verbose
 } catch {
     $ErrorMessage = "Error getting Azure Table Storage headers: $_"
     Write-Error $ErrorMessage

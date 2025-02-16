@@ -1,4 +1,4 @@
-# This workflow will deploy a PowerShell project to an Azure Functions App when a commit is pushed to main.
+# This workflow will deploy a PowerShell project to an Azure Function App when a commit is pushed to main.
 # The workflow can also be manually triggered using the "Run Workflow" button in the GitHub Actions UI.
 
 name: AZD Continuous Deployment
@@ -10,8 +10,8 @@ on:
       - main
 
 permissions:
-  id-token: write
   contents: read
+  id-token: write
 
 jobs:
   build:
@@ -34,9 +34,9 @@ jobs:
       - name: Login with Azure Dev CLI
         run: |
           azd auth login `
-            --client-id "$Env:AZURE_CLIENT_ID" `
+            --client-id "$env:AZURE_CLIENT_ID" `
             --federated-credential-provider "github" `
-            --tenant-id "$Env:AZURE_TENANT_ID"
+            --tenant-id "$env:AZURE_TENANT_ID"
         shell: pwsh
 
       - name: Provision Infrastructure

@@ -31,7 +31,7 @@ resource storageBlobOwnerRole 'Microsoft.Authorization/roleDefinitions@2022-04-0
 @sys.description('Built-in Storage Table Data Contributor role. See https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/storage#storage-table-data-contributor')
 resource storageTableContributorRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: subscription()
-  name: '19e7f393-937e-4f77-808e-94535e297925'
+  name: '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 }
 
 @sys.description('Built-in Monitoring Metrics Publisher role. See https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/monitor#monitoring-metrics-publisher')
