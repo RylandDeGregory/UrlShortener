@@ -1,9 +1,10 @@
 {
   "recommendations": [
+    "Azurite.azurite",
     "GitHub.vscode-pull-request-github",
     "ms-azuretools.azure-dev",
     "ms-azuretools.vscode-azurefunctions",
     "ms-azuretools.vscode-bicep",
-    "ms-vscode.PowerShell"
+    "ms-vscode.PowerShell",
   ]
 }

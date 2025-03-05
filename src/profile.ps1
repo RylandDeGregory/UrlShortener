@@ -81,7 +81,7 @@ function Get-AzTableHeaders {
 
         # If the request should use master key authentication rather than Entra ID authentication
         [Parameter()]
-        [switch] $UseSharedKeyAuth
+        [switch] $UseSharedKeyAuth = $env:IS_LOCAL
     )
 
     # Set Azure Table Storage request headers
@@ -97,9 +97,13 @@ function Get-AzTableHeaders {
         Write-Verbose 'Get Azure Table Storage SharedKeyLite Signature'
         if ([string]::IsNullOrWhiteSpace($env:STORAGE_ACCESS_KEY)) {
             Write-Error 'STORAGE_ACCESS_KEY environment variable is not set.'
-            return 1
+            exit
         }
-        $SigningString  = "$DateTime`n/$StorageAccount/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
+        $SigningString = if ($env:IS_LOCAL) {
+            "$DateTime`n/$StorageAccount/$StorageAccount/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
+        } else {
+            "$DateTime`n/$StorageAccount/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
+        }
         $HmacSha        = [System.Security.Cryptography.HMACSHA256]@{Key = [Convert]::FromBase64String($env:STORAGE_ACCESS_KEY)}
         $Signature      = [Convert]::ToBase64String($HmacSha.ComputeHash([Text.Encoding]::UTF8.GetBytes($SigningString)))
         $AzTableHeaders += @{'Authorization' = "SharedKeyLite $StorageAccount`:$Signature"}
@@ -113,9 +117,6 @@ function Get-AzTableHeaders {
         }
         $AzTableHeaders += @{'Authorization' = "Bearer $($AzStorageToken)"}
     }
-
-    Write-Debug 'Azure Table Storage Request Headers:'
-    Write-Debug ($AzTableHeaders | ConvertTo-Json)
 
     return $AzTableHeaders
 }
@@ -154,10 +155,15 @@ function Get-AzTableRecord {
     )
 
     # Get Azure Table Storage request properties
-    $AzTableUri = "https://$StorageAccount.table.core.windows.net/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
+    $StorageEndpoint = if ($env:IS_LOCAL) {
+        "https://$StorageAccount.table.core.windows.net"
+    } else {
+        "http://127.0.0.1:10002/$StorageAccount"
+    }
+    $AzTableUri = "$StorageEndpoint/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
 
     # Get the record from the Azure Table
-    Write-Verbose "Get Azure Table record [$AzTableUri]"
+    Write-Information "Get Azure Table record [$AzTableUri]"
     try {
         $AzTableRecord = Invoke-RestMethod -Method Get -Uri $AzTableUri -Headers $Headers
     } catch {
@@ -206,10 +212,15 @@ function Remove-AzTableRecord {
     )
 
     # Get Azure Table Storage request properties
-    $AzTableUri = "https://$StorageAccount.table.core.windows.net/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
+    $StorageEndpoint = if ($env:IS_LOCAL) {
+        "https://$StorageAccount.table.core.windows.net"
+    } else {
+        "http://127.0.0.1:10002/$StorageAccount"
+    }
+    $AzTableUri = "$StorageEndpoint/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
 
-    # Get the record from the Azure Table
-    Write-Verbose "Get Azure Table record [$AzTableUri]"
+    # Remove the record from the Azure Table
+    Write-Verbose "Remove Azure Table record [$AzTableUri]"
     try {
         $AzTableRecord = Invoke-RestMethod -Method Delete -Uri $AzTableUri -Headers $Headers
     } catch {
@@ -258,8 +269,13 @@ function Set-AzTableRecord {
     # Set Azure Tale Storage request properties
     $PartitionKey = $Record.PartitionKey
     $RowKey       = $Record.RowKey
-    $AzTableUri   = "https://$StorageAccount.table.core.windows.net/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
     $AzTableBody  = $Record | ConvertTo-Json -Depth 10
+    $StorageEndpoint = if ($env:IS_LOCAL) {
+        "https://$StorageAccount.table.core.windows.net"
+    } else {
+        "http://127.0.0.1:10002/$StorageAccount"
+    }
+    $AzTableUri = "$StorageEndpoint/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
 
     # Set the record in the Azure Table
     Write-Verbose "Set Azure Table record [$AzTableUri]"
