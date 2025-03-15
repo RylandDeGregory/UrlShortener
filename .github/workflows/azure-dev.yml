@@ -43,4 +43,4 @@ jobs:
         run: azd provision --no-prompt
 
       - name: Deploy Application
-        run: azd deploy --no-prompt
+        run: azd hooks run postprovision --no-prompt
