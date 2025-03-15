@@ -81,7 +81,7 @@ function Get-AzTableHeaders {
 
         # If the request should use master key authentication rather than Entra ID authentication
         [Parameter()]
-        [switch] $UseSharedKeyAuth = $env:IS_LOCAL
+        [switch] $UseSharedKeyAuth = [bool]$env:IS_LOCAL
     )
 
     # Set Azure Table Storage request headers
@@ -99,7 +99,7 @@ function Get-AzTableHeaders {
             Write-Error 'STORAGE_ACCESS_KEY environment variable is not set.'
             exit
         }
-        $SigningString = if ($env:IS_LOCAL) {
+        $SigningString = if ([bool]$env:IS_LOCAL) {
             "$DateTime`n/$StorageAccount/$StorageAccount/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
         } else {
             "$DateTime`n/$StorageAccount/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
@@ -155,10 +155,10 @@ function Get-AzTableRecord {
     )
 
     # Get Azure Table Storage request properties
-    $StorageEndpoint = if ($env:IS_LOCAL) {
-        "https://$StorageAccount.table.core.windows.net"
-    } else {
+    $StorageEndpoint = if ([bool]$env:IS_LOCAL) {
         "http://127.0.0.1:10002/$StorageAccount"
+    } else {
+        "https://$StorageAccount.table.core.windows.net"
     }
     $AzTableUri = "$StorageEndpoint/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
 
@@ -212,16 +212,17 @@ function Remove-AzTableRecord {
     )
 
     # Get Azure Table Storage request properties
-    $StorageEndpoint = if ($env:IS_LOCAL) {
-        "https://$StorageAccount.table.core.windows.net"
-    } else {
+    $StorageEndpoint = if ([bool]$env:IS_LOCAL) {
         "http://127.0.0.1:10002/$StorageAccount"
+    } else {
+        "https://$StorageAccount.table.core.windows.net"
     }
     $AzTableUri = "$StorageEndpoint/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
 
     # Remove the record from the Azure Table
     Write-Verbose "Remove Azure Table record [$AzTableUri]"
     try {
+        $Headers['If-Match'] = '*'
         $AzTableRecord = Invoke-RestMethod -Method Delete -Uri $AzTableUri -Headers $Headers
     } catch {
         Write-Error "Error removing Azure Table record: $_"
@@ -266,14 +267,14 @@ function Set-AzTableRecord {
         [hashtable] $Headers
     )
 
-    # Set Azure Tale Storage request properties
+    # Get Azure Tale Storage request properties
     $PartitionKey = $Record.PartitionKey
     $RowKey       = $Record.RowKey
     $AzTableBody  = $Record | ConvertTo-Json -Depth 10
-    $StorageEndpoint = if ($env:IS_LOCAL) {
-        "https://$StorageAccount.table.core.windows.net"
-    } else {
+    $StorageEndpoint = if ([bool]$env:IS_LOCAL) {
         "http://127.0.0.1:10002/$StorageAccount"
+    } else {
+        "https://$StorageAccount.table.core.windows.net"
     }
     $AzTableUri = "$StorageEndpoint/$TableName(PartitionKey='$PartitionKey',RowKey='$RowKey')"
 

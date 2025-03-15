@@ -118,7 +118,7 @@ if ($ShortUrlRecord) {
             $ShortUrlRecord.Url = $OriginalUrl
         }
 
-        if ([string]$ShortUrlRecord.TrackClicks -ne $TrackClicks) {
+        if (-not [String]::IsNullOrWhiteSpace($TrackClicks)) {
             Write-Information "TrackClicks changed from [$($ShortUrlRecord.TrackClicks)] to [$TrackClicks]"
 
             # Ensure TrackClicks property exists
@@ -133,7 +133,7 @@ if ($ShortUrlRecord) {
                 Add-Member -InputObject $ShortUrlRecord -MemberType NoteProperty -Name 'Clicks' -Value 0
             }
 
-            Write-Information "$(if ($TrackClicks -eq 'true') {'Enabled'} else {'Disabled'}) click tracking for [$ShortUrlId]"
+            Write-Information "$(if ($TrackClicks -eq 'true') { 'Enabled' } else { 'Disabled' }) click tracking for [$ShortUrlId]"
         }
 
         $TableRecord = $ShortUrlRecord
