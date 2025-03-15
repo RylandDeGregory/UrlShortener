@@ -11,7 +11,7 @@ hooks:
         interactive: true
         continueOnError: false
       posix:
-        shell: sh
-        run: ./scripts/deploy.sh
+        shell: pwsh
+        run: ./scripts/deploy.ps1
         interactive: true
         continueOnError: false
