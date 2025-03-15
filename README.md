@@ -8,7 +8,7 @@ This project utilizes the [Azure Developer CLI](https://learn.microsoft.com/en-u
 
 ### Install prerequisites
 
-1. Install PowerShell 7: [Instructions](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell)
+1. Install PowerShell 7: [Instructions](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell).
 2. Install the Azure Developer CLI (`azd`): [Instructions](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd).
 3. Install the Azure Functions Core Tools (`func`): [Instructions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local).
 

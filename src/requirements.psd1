@@ -3,6 +3,6 @@
 #
 @{
     # For latest supported version, go to 'https://www.powershellgallery.com/packages/Az.Accounts'.
-    # Uncomment if running locally. Leave commented out if running in Azure.
+    # Uncomment if developing locally with Azure Storage. Comment if developing locally with Azurite or running in Azure.
     # 'Az.Accounts' = '4.*'
 }
